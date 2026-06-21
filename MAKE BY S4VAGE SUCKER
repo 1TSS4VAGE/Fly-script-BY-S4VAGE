@@ -1,0 +1,15 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function boostCharacter(character)
+	local humanoid = character:WaitForChild("Humanoid")
+	humanoid.WalkSpeed = 100
+	humanoid.JumpPower = 100
+	humanoid.UseJumpPower = true
+end
+
+if player.Character then
+	boostCharacter(player.Character)
+end
+
+player.CharacterAdded:Connect(boostCharacter)
