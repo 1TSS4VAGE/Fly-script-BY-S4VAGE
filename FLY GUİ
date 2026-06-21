@@ -1,0 +1,97 @@
+-- Fly Gui (LocalScript veya ModuleScript)
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
+
+local flying = false
+local speed = 50
+local bodyVelocity = nil
+
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundTransparency = 0.2
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 180, 0, 40)
+toggleBtn.Position = UDim2.new(0.5, -90, 0, 10)
+toggleBtn.Text = "Uçuş: Kapalı"
+toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+toggleBtn.Parent = frame
+
+local speedSlider = Instance.new("TextBox")
+speedSlider.Size = UDim2.new(0, 180, 0, 30)
+speedSlider.Position = UDim2.new(0.5, -90, 0, 55)
+speedSlider.Text = "50"
+speedSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+speedSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedSlider.Parent = frame
+
+-- Uçuş fonksiyonları
+local function startFly()
+    flying = true
+    toggleBtn.Text = "Uçuş: Açık"
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
+    
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = root
+end
+
+local function stopFly()
+    flying = false
+    toggleBtn.Text = "Uçuş: Kapalı"
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    if bodyVelocity then bodyVelocity:Destroy() end
+end
+
+toggleBtn.MouseButton1Click:Connect(function()
+    if flying then stopFly() else startFly() end
+end)
+
+speedSlider.FocusLost:Connect(function(enter)
+    if enter then
+        local num = tonumber(speedSlider.Text)
+        if num then speed = math.clamp(num, 10, 200) end
+        speedSlider.Text = tostring(speed)
+    end
+end)
+
+-- Hareket kontrolü (WASD + Space)
+RunService.RenderStepped:Connect(function()
+    if not flying or not root or not bodyVelocity then return end
+    
+    local moveDir = Vector3.new(0, 0, 0)
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Vector3.new(0, 0, -speed) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir + Vector3.new(0, 0, speed) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir + Vector3.new(-speed, 0, 0) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Vector3.new(speed, 0, 0) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, speed, 0) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir + Vector3.new(0, -speed, 0) end
+    
+    bodyVelocity.Velocity = root.CFrame:VectorToWorldSpace(moveDir)
+end)
+
+-- Karakter değişiminde reset
+player.CharacterAdded:Connect(function(newChar)
+    char = newChar
+    root = char:WaitForChild("HumanoidRootPart")
+    if flying then
+        stopFly()
+        task.wait(0.1)
+        startFly()
+    end
+end)
